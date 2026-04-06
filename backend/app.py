@@ -10,7 +10,7 @@ from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request, send_file
 
-from config import DB_PATH, DEBUG, HOST, PORT
+from config import DB_PATH, DEBUG, FACE_REQUIRED, HOST, PORT
 from db_setup import init_db
 from face import save_uploaded_image, verify_employee_face
 from gsm import GSMService
@@ -97,10 +97,11 @@ def mark_attendance():
             temp_path = Path("data") / "temp" / f"employee_{employee_id}_{datetime.now().timestamp()}.jpg"
             image_path = save_uploaded_image(img_file, temp_path)
 
-        # Face validation
-        matched, face_message = verify_employee_face(employee_id, image_base64=image_base64, image_path=image_path)
-        if not matched:
-            return jsonify({"success": False, "message": f"Face verification failed: {face_message}"}), 403
+        # Face validation (can be disabled for local/dev environments)
+        if FACE_REQUIRED:
+            matched, face_message = verify_employee_face(employee_id, image_base64=image_base64, image_path=image_path)
+            if not matched:
+                return jsonify({"success": False, "message": f"Face verification failed: {face_message}"}), 403
 
         today, now_time = current_date_time()
         conn = get_db_connection()

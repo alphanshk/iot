@@ -30,3 +30,4 @@ GSM_TIMEOUT_SECONDS = int(os.getenv("GSM_TIMEOUT_SECONDS", "2"))
 
 # Face recognition
 FACE_MATCH_TOLERANCE = float(os.getenv("FACE_MATCH_TOLERANCE", "0.5"))
+FACE_REQUIRED = os.getenv("FACE_REQUIRED", "true").lower() == "true"

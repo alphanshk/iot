@@ -151,6 +151,37 @@ python app.py
 
 > Note: `face_recognition` can be heavy on Windows. If installation fails, install C++ build tools and retry.
 
+
+### If you get NumPy/compiler error on Windows (like your screenshot)
+
+That error means pip is trying to build NumPy from source because your Python version/architecture has no compatible wheel.
+
+Use this exact fix:
+
+1. Install **Python 3.11 (64-bit)** (recommended for this project).
+2. Create a fresh venv and upgrade build tools:
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip setuptools wheel
+```
+
+3. Install Windows-friendly dependencies first:
+
+```powershell
+pip install -r requirements-windows.txt
+```
+
+4. If you cannot install `face_recognition` on Windows, run backend in development mode with face check disabled:
+
+```powershell
+$env:FACE_REQUIRED = "false"
+python app.py
+```
+
+5. On Raspberry Pi / production, keep `FACE_REQUIRED=true` (default) and install full `requirements.txt`.
+
 ## 2) GSM (SIM800L) Wiring and Usage
 
 - Connect SIM800L TX -> Raspberry Pi RX (GPIO15, pin 10)
