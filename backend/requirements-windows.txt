@@ -1,0 +1,5 @@
+Flask==3.0.3
+pyserial==3.5
+openpyxl==3.1.5
+opencv-python==4.10.0.84
+numpy>=2.1.0

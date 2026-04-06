@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Attendance Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Smart Employee Attendance</h1>
+        <p>Raspberry Pi attendance with biometric + face + GSM + buzzer feedback.</p>
+      </header>
+
+      <div class="actions">
+        <a class="btn" href="{{ url_for('export_csv') }}">Download CSV</a>
+        <a class="btn secondary" href="{{ url_for('export_excel') }}">Download Excel</a>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Date</th>
+              <th>IN Time</th>
+              <th>OUT Time</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+            <tr>
+              <td>{{ row['name'] }}</td>
+              <td>{{ row['date'] }}</td>
+              <td>{{ row['in_time'] or '-' }}</td>
+              <td>{{ row['out_time'] or '-' }}</td>
+              <td>
+                {% if row['out_time'] %}
+                <span class="badge out">COMPLETED</span>
+                {% else %}
+                <span class="badge in">IN ONLY</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5" class="empty">No attendance records available.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>
