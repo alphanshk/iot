@@ -111,6 +111,46 @@ Server listens on:
 - `http://0.0.0.0:5000`
 - Access in LAN as `http://<RPI_LOCAL_IP>:5000`
 
+
+## 1B) Backend Setup (Windows 10/11)
+
+Yes — you can run the backend on Windows for development/testing.
+
+### Prerequisites
+- Install Python 3.10+
+- Install Visual Studio Build Tools (for some native Python packages)
+
+### Setup in PowerShell
+
+```powershell
+cd C:\path\to\iot\backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+python db_setup.py
+```
+
+### Run server on Windows
+
+```powershell
+python app.py
+```
+
+The app will run at `http://localhost:5000` and can still be accessed by Android on the same LAN using your Windows machine IP.
+
+### Windows-specific environment examples
+
+```powershell
+$env:GSM_ENABLED = "false"
+$env:GSM_SERIAL_PORT = "COM3"
+$env:HOST = "0.0.0.0"
+$env:PORT = "5000"
+python app.py
+```
+
+> Note: `face_recognition` can be heavy on Windows. If installation fails, install C++ build tools and retry.
+
 ## 2) GSM (SIM800L) Wiring and Usage
 
 - Connect SIM800L TX -> Raspberry Pi RX (GPIO15, pin 10)
