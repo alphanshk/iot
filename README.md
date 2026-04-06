@@ -1,306 +1,198 @@
-# IoT Smart Employee Attendance System
+# IoT Smart Employee Attendance System (Android + Flask + Raspberry Pi)
 
-Complete Raspberry Pi + Flask + SQLite + Android project for secure employee attendance using:
+A complete attendance system with:
+- Android Kotlin app (login, fingerprint, camera capture)
+- Flask backend on Raspberry Pi
+- SQLite database
+- Optional face verification
+- Buzzer GPIO feedback
+- Optional GSM SMS alerts
+- Web dashboard with Excel export
 
-- Phone/password login
-- Mobile fingerprint verification (BiometricPrompt)
-- Face recognition check before attendance marking
-- GSM SMS notifications for IN/OUT/final status
-- Web dashboard with CSV/Excel exports
+---
 
-## Folder Structure
+## 1) Project Structure
 
 ```text
 iot/
-├── README.md
 ├── backend/
 │   ├── app.py
 │   ├── config.py
 │   ├── db_setup.py
-│   ├── face.py
+│   ├── buzzer.py
 │   ├── gsm.py
+│   ├── face.py
 │   ├── requirements.txt
+│   ├── requirements-1gb.txt
+│   ├── requirements-windows.txt
 │   ├── data/
-│   │   ├── attendance.db           # generated
-│   │   └── known_faces/            # store employee face images as <employee_id>.jpg
-│   ├── static/
-│   │   └── css/
-│   │       └── styles.css
-│   └── templates/
-│       └── dashboard.html
+│   │   ├── attendance.db            # generated
+│   │   ├── known_faces/             # reference faces: <employee_id>.jpg
+│   │   └── saved_faces/             # captured attendance images
+│   ├── templates/
+│   │   └── dashboard.html
+│   └── static/css/
+│       └── styles.css
 └── android-app/
-    ├── settings.gradle
-    ├── build.gradle
-    ├── gradle.properties
-    └── app/
-        ├── build.gradle
-        └── src/main/
-            ├── AndroidManifest.xml
-            ├── java/com/example/attendance/
-            │   ├── ApiService.kt
-            │   ├── DashboardActivity.kt
-            │   ├── LoginActivity.kt
-            │   ├── Models.kt
-            │   └── SessionManager.kt
-            └── res/
-                ├── layout/
-                │   ├── activity_dashboard.xml
-                │   └── activity_login.xml
-                └── values/
-                    ├── colors.xml
-                    ├── strings.xml
-                    └── themes.xml
+    └── app/src/main/java/com/example/attendance/
+        ├── LoginActivity.kt
+        ├── DashboardActivity.kt
+        ├── ApiService.kt
+        ├── SessionManager.kt
+        └── Models.kt
 ```
 
-## 1) Backend Setup (Raspberry Pi)
+---
 
-### Install system dependencies
+## 2) Core Features Implemented
 
-```bash
-sudo apt update
-sudo apt install -y python3 python3-venv python3-pip libatlas-base-dev cmake build-essential libopenblas-dev liblapack-dev
+- Multi-user login (`phone + password`)
+- Fingerprint auth in Android via `BiometricPrompt`
+- Camera capture + Base64 upload from Android
+- Attendance logic:
+  - first mark/day = IN
+  - second mark/day = OUT
+  - third attempt/day = rejected
+- Captured image save in `backend/data/saved_faces/` as `<employee_id>_<timestamp>.jpg`
+- Buzzer support:
+  - `beep_success()` => short beep
+  - `beep_error()` => 3 beeps
+- Optional GSM SMS for IN/OUT
+- Web dashboard + CSV/Excel export
+- Face recognition optional (`FACE_REQUIRED=false` by default for 1GB devices)
+
+---
+
+## 3) Backend API
+
+### POST `/login`
+```json
+{ "phone": "9876543210", "password": "admin123" }
 ```
 
-For webcam and face recognition support:
-
-```bash
-sudo apt install -y libjpeg-dev libtiff5-dev libavcodec-dev libavformat-dev libswscale-dev libv4l-dev
+### POST `/mark_api`
+```json
+{ "employee_id": 1, "image_base64": "<base64_jpg>" }
 ```
 
-### Python setup
+### GET `/attendance`
+Optional query: `employee_id`, `date`
+
+---
+
+## 4) Database Schema
+
+- `users(id, name, phone, password)`
+- `attendance(id, employee_id, date, in_time, out_time, image_in_path, image_out_path)`
+
+---
+
+## 5) Raspberry Pi Setup (Full)
 
 ```bash
-cd /workspace/iot/backend
+cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
-```
-
-### Initialize database and demo employee
-
-```bash
 python db_setup.py
+python app.py
 ```
 
-Demo credentials:
-- Phone: `9876543210`
-- Password: `admin123`
+Server runs on `0.0.0.0:5000`.
 
-### Add known face images
+---
 
-Place employee reference photos in:
-
-```text
-backend/data/known_faces/<employee_id>.jpg
-```
-
-Example for employee ID 1:
+## 6) Raspberry Pi Setup (1GB Optimized)
 
 ```bash
-cp myphoto.jpg backend/data/known_faces/1.jpg
-```
-
-### Run Flask server on Raspberry Pi LAN
-
-```bash
-python app.py
-```
-
-Server listens on:
-- `http://0.0.0.0:5000`
-- Access in LAN as `http://<RPI_LOCAL_IP>:5000`
-
-
-## 1B) Backend Setup (Windows 10/11)
-
-Yes — you can run the backend on Windows for development/testing.
-
-### Prerequisites
-- Install Python 3.10+
-- Install Visual Studio Build Tools (for some native Python packages)
-
-### Setup in PowerShell
-
-```powershell
-cd C:\path\to\iot\backend
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-python db_setup.py
-```
-
-### Run server on Windows
-
-```powershell
-python app.py
-```
-
-The app will run at `http://localhost:5000` and can still be accessed by Android on the same LAN using your Windows machine IP.
-
-### Windows-specific environment examples
-
-```powershell
-$env:GSM_ENABLED = "false"
-$env:GSM_SERIAL_PORT = "COM3"
-$env:HOST = "0.0.0.0"
-$env:PORT = "5000"
-python app.py
-```
-
-> Note: `face_recognition` can be heavy on Windows. If installation fails, install C++ build tools and retry.
-
-
-### If you get NumPy/compiler error on Windows (like your screenshot)
-
-That error means pip is trying to build NumPy from source because your Python version/architecture has no compatible wheel.
-
-Use this exact fix:
-
-1. Install **Python 3.11 (64-bit)** (recommended for this project).
-2. Create a fresh venv and upgrade build tools:
-
-```powershell
-py -3.11 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip setuptools wheel
-```
-
-3. Install Windows-friendly dependencies first:
-
-```powershell
-pip install -r requirements-windows.txt
-```
-
-4. If you cannot install `face_recognition` on Windows, run backend in development mode with face check disabled:
-
-```powershell
-$env:FACE_REQUIRED = "false"
-python app.py
-```
-
-5. On Raspberry Pi / production, keep `FACE_REQUIRED=true` (default) and install full `requirements.txt`.
-
-
-## 1C) Running on 1GB RAM devices
-
-Yes, this project can run on a 1GB system **in lightweight mode**.
-
-### Reality check for 1GB
-- Full stack (`face_recognition` + OpenCV + Flask + DB + GSM) on 1GB is possible but can be slow and unstable under load.
-- Recommended on 1GB: run backend APIs + DB + GSM, and temporarily disable server-side face matching.
-
-### Lightweight install (recommended for 1GB)
-
-```bash
-cd /workspace/iot/backend
+cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements-1gb.txt
-```
-
-### Run with face check disabled
-
-```bash
 export FACE_REQUIRED=false
+python db_setup.py
 python app.py
 ```
 
-### If you still want full face recognition on 1GB
+This mode is recommended on Raspberry Pi 5 (1GB RAM).
 
-```bash
-pip install -r requirements.txt
-export FACE_REQUIRED=true
+---
+
+## 7) Windows Setup
+
+If NumPy/face packages fail on Windows, use:
+
+```powershell
+cd backend
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip setuptools wheel
+pip install -r requirements-windows.txt
+$env:FACE_REQUIRED = "false"
+python db_setup.py
 python app.py
 ```
 
-Tips for full mode on 1GB:
-- Use low-resolution camera images.
-- Keep only one face in each reference image.
-- Avoid running other heavy services on the same Pi.
+---
 
-## 2) GSM (SIM800L) Wiring and Usage
+## 8) GPIO Buzzer Wiring
 
-- Connect SIM800L TX -> Raspberry Pi RX (GPIO15, pin 10)
-- Connect SIM800L RX -> Raspberry Pi TX (GPIO14, pin 8)
-- Common GND required
-- Use stable external 4V power for SIM800L (do **not** power directly from Pi 3.3V pin)
+- Buzzer signal -> GPIO18
+- GND -> GND
 
-Edit values in `backend/config.py`:
-- `GSM_SERIAL_PORT` (e.g. `/dev/serial0`)
-- `GSM_BAUDRATE`
-- `GSM_ENABLED = True` once hardware is ready
+Config:
+- `BUZZER_ENABLED=true`
+- `BUZZER_PIN=18`
 
-When enabled, system sends SMS for:
-1. IN marked
-2. OUT marked
-3. Final confirmation after OUT
+Behavior:
+- Success mark => one short beep
+- Failure/rejection => three short beeps
 
-## 3) API Endpoints
+---
 
-### POST `/login`
-Body:
-```json
-{
-  "phone": "9876543210",
-  "password": "admin123"
-}
+## 9) GSM SIM800L (Optional)
+
+Set env:
+- `GSM_ENABLED=true`
+- `GSM_SERIAL_PORT=/dev/serial0` (Pi) or `COM3` (Windows)
+
+SMS sent on:
+- IN marked
+- OUT marked
+
+---
+
+## 10) Android Integration
+
+In `android-app/.../ApiService.kt`, set:
+
+```kotlin
+private const val BASE_URL = "http://<RASPBERRY_PI_IP>:5000/"
 ```
 
-### POST `/mark_api`
-Body (JSON or multipart):
-```json
-{
-  "employee_id": 1,
-  "image_base64": "<optional base64 jpeg>"
-}
-```
+App flow:
+1. Login with phone/password
+2. Fingerprint verification
+3. Camera capture
+4. Base64 image sent to `/mark_api`
+5. Show IN/OUT/failure response
 
-Attendance logic:
-- First mark of day -> `IN`
-- Second mark of day -> `OUT`
-- Third+ attempt -> reject as already marked
+---
 
-### GET `/attendance`
-Optional query params:
-- `employee_id`
-- `date` (YYYY-MM-DD)
+## 11) Face Recognition Mode
 
-### GET `/` (Web dashboard)
-Shows live attendance table and export buttons.
+- Default: `FACE_REQUIRED=false` (optimized)
+- For strict mode:
+  - set `FACE_REQUIRED=true`
+  - store reference face at `backend/data/known_faces/<employee_id>.jpg`
 
-## 4) Android App Setup
+---
 
-1. Open `android-app/` in Android Studio.
-2. Let Gradle sync.
-3. In `ApiService.kt`, update `BASE_URL` to Raspberry Pi LAN IP, e.g.:
-   - `http://192.168.1.23:5000/`
-4. Run on Android 9+ device with fingerprint enrolled.
+## 12) Demo Users
 
-### App Flow
-- Login screen: phone + password
-- Dashboard: Mark Attendance button
-- On mark:
-  1. BiometricPrompt fingerprint validation
-  2. Capture image (camera intent)
-  3. POST `/mark_api` with employee ID and image
-  4. Show IN/OUT/rejection message
-
-## 5) Preventing Proxy Attendance
-
-Implemented controls:
-- Password-based account authentication
-- On-device biometric fingerprint check before mark request
-- Server-side face verification against stored employee face
-- Daily IN/OUT sequence restriction (max 2 valid marks)
-
-## 6) Production Notes
-
-- Replace plain password storage with hashed passwords (bcrypt/argon2) before production.
-- Add JWT/session token validation for every API.
-- Add HTTPS (Nginx reverse proxy + TLS).
-- Use proper SMS queue/retry logic for unstable networks.
-- Configure camera quality and liveness checks for stronger anti-spoofing.
+After `python db_setup.py`:
+- `9876543210 / admin123`
+- `9876543211 / pass123`
 
