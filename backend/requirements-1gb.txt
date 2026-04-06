@@ -1,0 +1,10 @@
+# Lightweight profile for 1GB RAM devices (recommended for Raspberry Pi 3/Zero dev mode)
+Flask==3.0.3
+pyserial==3.5
+
+# Optional but still light enough on 1GB for reports
+openpyxl==3.1.5
+
+# NOTE:
+# - face-recognition and opencv are intentionally excluded in this profile.
+# - Run with FACE_REQUIRED=false when using this profile.

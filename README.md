@@ -182,6 +182,45 @@ python app.py
 
 5. On Raspberry Pi / production, keep `FACE_REQUIRED=true` (default) and install full `requirements.txt`.
 
+
+## 1C) Running on 1GB RAM devices
+
+Yes, this project can run on a 1GB system **in lightweight mode**.
+
+### Reality check for 1GB
+- Full stack (`face_recognition` + OpenCV + Flask + DB + GSM) on 1GB is possible but can be slow and unstable under load.
+- Recommended on 1GB: run backend APIs + DB + GSM, and temporarily disable server-side face matching.
+
+### Lightweight install (recommended for 1GB)
+
+```bash
+cd /workspace/iot/backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements-1gb.txt
+```
+
+### Run with face check disabled
+
+```bash
+export FACE_REQUIRED=false
+python app.py
+```
+
+### If you still want full face recognition on 1GB
+
+```bash
+pip install -r requirements.txt
+export FACE_REQUIRED=true
+python app.py
+```
+
+Tips for full mode on 1GB:
+- Use low-resolution camera images.
+- Keep only one face in each reference image.
+- Avoid running other heavy services on the same Pi.
+
 ## 2) GSM (SIM800L) Wiring and Usage
 
 - Connect SIM800L TX -> Raspberry Pi RX (GPIO15, pin 10)
