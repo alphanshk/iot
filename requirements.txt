@@ -1,0 +1,6 @@
+flask
+pyserial
+gpiozero
+lgpio
+pillow
+openpyxl
